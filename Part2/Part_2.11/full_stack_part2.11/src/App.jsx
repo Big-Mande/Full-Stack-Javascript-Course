@@ -1,24 +1,23 @@
 import React from 'react';
 import { useState,useEffect } from 'react';
-import axios from 'axios'
-import ReactDOM from 'react-dom/client'
+import phoneService from './services/phonebook'
 
 const App = () => {
   
-  const [ persons, setPersons ] = useState([]);
+  const [persons, setPersons] = useState([]);
   const [newNumber, setNumber] = useState([]);
   const [newName, setNewName] = useState('');
   const [newFilter, setFilter] = useState('');
-  let id = 5;
-
-  const hook = () =>{
-	axios.get('http://localhost:3001/persons')
-	  .then(response => {
-		setPersons(response.data)
-	  })
-  }
-  
-   useEffect(hook, [])
+  const [id, setId] = useState(null);
+   useEffect(() => 
+        phoneService.getAll()
+        .then(response =>{
+            setPersons(response.data)
+            const size = response.data.length - 1;
+            const lastId = response.data[size].id;
+            setId(lastId + 1);
+        })
+    ,[])
 
   const addPerson = (event) => {
     event.preventDefault();
@@ -26,11 +25,21 @@ const App = () => {
       return;
     }
     const person = { name: newName, number: newNumber, id: id };
-    id += 1;
-    setPersons(persons.concat(person));
-    setNewName('');
-    setNumber('');
+          phoneService.create(person) 
+         .then(response => {
+          setPersons(persons.concat(response.data))
+          setNewName('')
+          setNumber('')
+          setId(id + 1)
+         })
   };
+
+    const deletePerson = (id) => {
+        phoneService.deleteObj(id)
+        .then(() => {
+            setPersons(persons.filter(person => person.id !== id));
+        });
+    };
 
   const handleChange = (event) => {
     console.log(event.target.value);
@@ -49,7 +58,15 @@ const App = () => {
   const nameCheck = (name) => {
     for (const person of persons) {
       if (person.name === name) {
-        alert(`${name} is already added to the phonebook`);
+        if(window.confirm(`${name} is already added to the phonebook, would you like to update the contact?`)){
+            const updatedPerson = {...person, number: newNumber}
+            phoneService.patch(person.id, updatedPerson)
+            .then( (response) => { setPersons(persons.map((p) => p.id === person.id
+                                                                ? response.data
+                                                                : p ))  })
+            setNewName('');
+            setNumber('');
+        }
         return true;
       }
     }
@@ -75,8 +92,8 @@ const App = () => {
         handleNumberChange={handleNumberChange}
       />
       <h2>Numbers</h2>
-      <Persons persons={filteredName} />
-    </div>
+      <Persons persons={filteredName} deletePerson={deletePerson} /> 
+      </div>
   );
 };
 
@@ -115,16 +132,20 @@ const AddPersonForm = ({
   );
 };
 
-const Persons = ({ persons }) => {
+
+const Persons = ({ persons , deletePerson}) => {
   return (
-    <ul>
+    <div>
+      <ul>
       {persons.map((person, index) => (
-        <li key={index}>
+          <li key={index}>
           {' '}
           {person.name}: {person.number}
-        </li>
+          <button onClick={()=> deletePerson(person.id)}>delete</button>
+          </li>
       ))}
-    </ul>
+      </ul>
+    </div>
   );
 };
 
