@@ -1,4 +1,5 @@
 import React from 'react';
+import './App.css'
 import { useState,useEffect } from 'react';
 import phoneService from './services/phonebook'
 
@@ -9,6 +10,8 @@ const App = () => {
   const [newName, setNewName] = useState('');
   const [newFilter, setFilter] = useState('');
   const [id, setId] = useState(null);
+  const [message, setMessage] = useState('');
+  const [class_name, setClass] = useState('success');
    useEffect(() => 
         phoneService.getAll()
         .then(response =>{
@@ -28,10 +31,13 @@ const App = () => {
           phoneService.create(person) 
          .then(response => {
           setPersons(persons.concat(response.data))
+          setMessage(`${person.name} has successfully been added!`)
+          setTimeout(() =>{
+            setMessage(null)}, 5000)
+          })
           setNewName('')
           setNumber('')
           setId(id + 1)
-         })
   };
 
     const deletePerson = (id) => {
@@ -63,11 +69,15 @@ const App = () => {
             phoneService.patch(person.id, updatedPerson)
             .then( (response) => { setPersons(persons.map((p) => p.id === person.id
                                                                 ? response.data
-                                                                : p ))  })
+                                                                : p ))  
+            setMessage(`${name} has been successfully added to the phonebook!`);
             setNewName('');
             setNumber('');
-        }
+            });
+        setTimeout(() => {
+        setMessage('')}, 5000);
         return true;
+        }
       }
     }
     return false;
@@ -81,7 +91,8 @@ const App = () => {
 
   return (
     <div>
-      <h2>Phonebook</h2>
+      <h1>Phonebook</h1>
+      <Notification message={message} class_name={class_name}/>
       <Filter newFilter={newFilter} handleFilterChange={handleFilterChange} />
       <h2>Add a New Person</h2>
       <AddPersonForm
@@ -112,7 +123,6 @@ const AddPersonForm = ({
   handleChange,
   newNumber,
   handleNumberChange,
-  nameCheck,
 }) => {
   return (
     <form onSubmit={addPerson}>
@@ -148,5 +158,18 @@ const Persons = ({ persons , deletePerson}) => {
     </div>
   );
 };
+
+const Notification = ({ message, class_name }) => {
+  if (message === null) {
+    return null
+  }
+
+  return (
+    <div className={class_name}>
+      {message}
+    </div>
+  )
+};
+
 
 export default App;
