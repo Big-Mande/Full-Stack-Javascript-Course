@@ -31,7 +31,8 @@ const App = () => {
           phoneService.create(person) 
          .then(response => {
           setPersons(persons.concat(response.data))
-          setMessage(`${person.name} has successfully been added!`)
+          setClass('success');
+          setMessage(`${person.name} has successfully been added!`);
           setTimeout(() =>{
             setMessage(null)}, 5000)
           })
@@ -40,11 +41,15 @@ const App = () => {
           setId(id + 1)
   };
 
-    const deletePerson = (id) => {
+    const deletePerson = (id, name) => {
         phoneService.deleteObj(id)
         .then(() => {
             setPersons(persons.filter(person => person.id !== id));
-        });
+            setClass('error');
+            setMessage(`${name} has been deleted from the phonebook.`);
+            setTimeout(() => {
+                setMessage(null)}, 5000)
+        })
     };
 
   const handleChange = (event) => {
@@ -69,11 +74,16 @@ const App = () => {
             phoneService.patch(person.id, updatedPerson)
             .then( (response) => { setPersons(persons.map((p) => p.id === person.id
                                                                 ? response.data
-                                                                : p ))  
+                                                                : p ))
+            setClass('success');
             setMessage(`${name} has been successfully added to the phonebook!`);
-            setNewName('');
-            setNumber('');
-            });
+            })
+            .catch( () => { 
+            setClass('error');
+            setMessage(`${person.name} has already been removed from the phonebook.`);
+            } )
+        setNewName('');
+        setNumber('');
         setTimeout(() => {
         setMessage('')}, 5000);
         return true;
@@ -151,7 +161,7 @@ const Persons = ({ persons , deletePerson}) => {
           <li key={index}>
           {' '}
           {person.name}: {person.number}
-          <button onClick={()=> deletePerson(person.id)}>delete</button>
+          <button onClick={()=> deletePerson(person.id, person.name)}>delete</button>
           </li>
       ))}
       </ul>
