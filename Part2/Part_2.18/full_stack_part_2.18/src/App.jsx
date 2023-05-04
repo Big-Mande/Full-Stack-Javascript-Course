@@ -5,6 +5,7 @@ import countriesAPI from './services/countries';
 function App() {
 const [countryNames, setCountryName] = useState([]);
 const [newCountry , setNewCountry] = useState('');
+const [countryData, setCountryData] = useState(null);
 
 
 const handleChange = (event) => {
@@ -13,27 +14,25 @@ const handleChange = (event) => {
 
 const filterCountry = () => {
         const countries = countryNames
-        ? countryNames.filter((name) => name.toLowerCase().includes(newCountry.toLowerCase()) )
+        ? countryNames.filter((name) => name.toLowerCase().startsWith(newCountry.toLowerCase()) )
         : countryNames
-        if (countries.length > 9) return ['Too many countires, narrow down your search'];
+        if (countries.length > 9) return ['Too many countries'];
         return countries;
  }
 
 const filteredNames = filterCountry();
 
-const countryData = getSingleCountryData();
-
 const getSingleCountryData = () => {
-    countriesAPI.getData()
-    .then( response => {
-        for(let i = 0; i < response.length; i++){
-            if(response.data[i].name.common.toLowerCase() === filteredNames[0]){
-                return response.data[i]
+        countriesAPI.getData()
+        .then( response => {
+            for(let i = 0; i < response.data.length; i++){
+                if(response.data[i].name.common.toLowerCase().startsWith(filteredNames[0].toLowerCase())){
+                    setCountryData(response.data[i])
+                    break;
+                }
             }
-        }
-    })
-    .catch( (error) => console.error(`Could not load in data for ${filteredNames[0]}`));
-
+        })
+        .catch(error => console.error('whoopsie couldnt load in the data :/'));
 };
 
 // Initial data fetching
@@ -49,12 +48,18 @@ useEffect( () => {
        );
 },[]);
 
+useEffect(() => {
+    if(filteredNames.length === 1){
+        getSingleCountryData();
+    }
+}, [filteredNames]);
+
   return (
       <div>
       <ShowCountries newCountry={newCountry} handleChange={handleChange}/>
       <Countries countryNames={countryNames} filteredNames={filteredNames} />
       {  filteredNames.length === 1
-         ?  <ShowCountryData countryData={countryData}/>
+         ?  (<ShowCountryData countryData={countryData}/>)
          :  null
       }
       </div>
@@ -88,25 +93,28 @@ const Countries = ({countryNames, filteredNames}) =>{
 };
 
 const ShowCountryData = ({countryData}) => {
+    if(countryData === null){
+        return <div></div>;
+    }
    return(
        <div>
             <h3>{countryData.name.common}</h3>
             <p>capital: {countryData.capital[0]}</p>
             <p>area : {countryData.area}</p>
 
-            <br><br>
+            <br/><br/>
 
             <p><b>Languages:</b></p>
 
             <ul>
-                {countryData.languages.map( language => (
-                   <li key={countryData.name.common}>
-                        {language}
+                { Object.keys(countryData.languages).map( key => (
+                   <li key={key}>
+                        {countryData.languages[key]}
                    </li>  
                 ))}            
             </ul>
 
-            <img src={countryData.flags.svg} alt="flag here :D" />
+            <img src={countryData.flags.svg} alt='flag here :D' />
        </div>
    ); 
 };
