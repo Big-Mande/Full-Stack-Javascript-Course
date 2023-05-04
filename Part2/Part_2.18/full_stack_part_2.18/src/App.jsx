@@ -52,6 +52,7 @@ useEffect(() => {
     if(filteredNames.length === 1){
         getSingleCountryData();
     }
+    else setCountryData(null);
 }, [filteredNames]);
 
   return (
@@ -114,7 +115,7 @@ const ShowCountryData = ({countryData}) => {
                 ))}            
             </ul>
 
-            <img src={countryData.flags.svg} alt='flag here :D' />
+            <img className="flag" src={countryData.flags.svg} alt='flag here :D' />
        </div>
    ); 
 };
