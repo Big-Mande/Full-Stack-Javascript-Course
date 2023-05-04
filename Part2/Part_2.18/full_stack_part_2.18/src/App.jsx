@@ -5,15 +5,30 @@ import countriesAPI from './services/countries';
 function App() {
 const [countryNames, setCountryName] = useState([]);
 const [newCountry , setNewCountry] = useState('');
+
+
 const handleChange = (event) => {
     setNewCountry(event.target.value);
 }
+
+const filterCountry = () => {
+        const countries = countryNames
+        ? countryNames.filter((name) => name.toLowerCase().includes(newCountry.toLowerCase()) )
+        : countryNames
+        if (countries.length > 10) return ['Too many countires, narrow down your search'];
+        return countries;
+ }
+
+const filteredNames = filterCountry();
+
+// Initial data fetching
 useEffect( () => { 
     countriesAPI.getData()
     .then(response => {
         const names = response.data.map(country => country.name.common);
         console.log(names);
         setCountryName(names);
+        
         })
     .catch( () => console.log('could not fetch data from baseURL in services'),
        );
@@ -22,7 +37,7 @@ useEffect( () => {
   return (
       <div>
       <ShowCountries newCountry={newCountry} handleChange={handleChange}/>
-      <Countries countryNames={countryNames} />
+      <Countries countryNames={countryNames} filteredNames={filteredNames} />
       </div>
     
   );
@@ -38,11 +53,12 @@ const ShowCountries = ({newCountry, handleChange}) => {
     );
 };
 
-const Countries = ({countryNames}) =>{
+const Countries = ({countryNames, filteredNames}) =>{
     return(
         <div>
             <ul>
-                {countryNames.map((name) => (
+                {
+                    filteredNames.map((name) => (
                     <li key={name}>
                         {name}
                     </li>
