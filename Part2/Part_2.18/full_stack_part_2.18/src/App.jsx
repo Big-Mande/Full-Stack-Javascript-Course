@@ -6,6 +6,7 @@ function App() {
 const [countryNames, setCountryName] = useState([]);
 const [newCountry , setNewCountry] = useState('');
 const [countryData, setCountryData] = useState(null);
+const [expandedCountry, setExpandedCountry] = useState(null);
 
 
 const handleChange = (event) => {
@@ -20,14 +21,28 @@ const filterCountry = () => {
         return countries;
  }
 
+
+const showCountry = (name) => {
+        if(expandedCountry && expandedCountry.name.common === name){
+            setExpandedCountry(null);
+        }
+        else{
+            const country = countryNames.find( countryName => countryName.toLowerCase() === name.toLowerCase() );
+            if(country){
+                getSingleCountryData(country);
+            }
+
+        }
+}
+
 const filteredNames = filterCountry();
 
-const getSingleCountryData = () => {
+const getSingleCountryData = (name) => {
         countriesAPI.getData()
         .then( response => {
             for(let i = 0; i < response.data.length; i++){
-                if(response.data[i].name.common.toLowerCase().startsWith(filteredNames[0].toLowerCase())){
-                    setCountryData(response.data[i])
+                if(response.data[i].name.common.toLowerCase() === name.toLowerCase() ){
+                    setExpandedCountry(response.data[i])
                     break;
                 }
             }
@@ -58,11 +73,11 @@ useEffect(() => {
   return (
       <div>
       <ShowCountries newCountry={newCountry} handleChange={handleChange}/>
-      <Countries countryNames={countryNames} filteredNames={filteredNames} />
-      {  filteredNames.length === 1
-         ?  (<ShowCountryData countryData={countryData}/>)
-         :  null
-      }
+      <Countries countryNames={countryNames} 
+                 filteredNames={filteredNames} 
+                 showCountry={showCountry} 
+                 expandedCountry={expandedCountry}
+      />
       </div>
     
   );
@@ -78,7 +93,7 @@ const ShowCountries = ({newCountry, handleChange}) => {
     );
 };
 
-const Countries = ({countryNames, filteredNames}) =>{
+const Countries = ({countryNames, filteredNames, showCountry, expandedCountry}) =>{
     return(
         <div>
             <ul>
@@ -86,6 +101,9 @@ const Countries = ({countryNames, filteredNames}) =>{
                     filteredNames.map((name) => (
                     <li key={name}>
                         {name}
+                        <button onClick={() => showCountry(name)}>show/hide data</button>
+                        {expandedCountry && expandedCountry.name.common === name && (
+                           <ShowCountryData countryData={expandedCountry}/> )}
                     </li>
                 ))}
             </ul>
@@ -119,5 +137,13 @@ const ShowCountryData = ({countryData}) => {
        </div>
    ); 
 };
+
+const ShowCountryButton = ({showCountry}) => {
+    return(
+        <div>
+            <button onClick={()=> showCountry}>show</button>
+        </div>
+    );
+}
 
 export default App
