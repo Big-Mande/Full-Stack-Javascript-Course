@@ -1,17 +1,27 @@
 import { useState,useEffect } from 'react';
 import './App.css';
-import countriesAPI from './services/countries';
+import countriesAPI, { iconURL, size } from './services/countries';
 
 function App() {
 const [countryNames, setCountryName] = useState([]);
 const [newCountry , setNewCountry] = useState('');
 const [countryData, setCountryData] = useState(null);
 const [expandedCountry, setExpandedCountry] = useState(null);
+const [countryWeatherData,  setCountryWeatherData] = useState(null);
 
+
+const getAPIWeatherData = (country) => {
+    // get weatherData obj
+    countriesAPI.getWeatherData(country)
+    .then(response => {
+       setCountryWeatherData(response); 
+    })
+    .catch(() => console.log(`error could not load in data for ${country.name.common.toLowerCase()}`));
+};
 
 const handleChange = (event) => {
-    setNewCountry(event.target.value);
-}
+    setNewCountry(event.target.value); 
+};
 
 const filterCountry = () => {
         const countries = countryNames
@@ -19,21 +29,27 @@ const filterCountry = () => {
         : countryNames
         if (countries.length > 9) return ['Too many countries'];
         return countries;
- }
+ };
 
 
 const showCountry = (name) => {
-        if(expandedCountry && expandedCountry.name.common === name){
-            setExpandedCountry(null);
-        }
-        else{
-            const country = countryNames.find( countryName => countryName.toLowerCase() === name.toLowerCase() );
-            if(country){
-                getSingleCountryData(country);
-            }
-
-        }
-}
+  const country = countryNames.find(
+    (countryName) => countryName.toLowerCase() === name.toLowerCase()
+  );
+  if (expandedCountry && expandedCountry.name.common === name) {
+        setExpandedCountry(null);
+  } else {
+    if (country) {
+         countriesAPI.getData()
+        .then(response => {
+          const foundCountry = response.data.find(country => country.name.common.toLowerCase() === name.toLowerCase());
+          setExpandedCountry(foundCountry);
+          getAPIWeatherData(foundCountry);
+        })
+        .catch(error => console.error('whoopsie couldnt load in the data :/'));
+    }
+  }
+};
 
 const filteredNames = filterCountry();
 
@@ -42,7 +58,8 @@ const getSingleCountryData = (name) => {
         .then( response => {
             for(let i = 0; i < response.data.length; i++){
                 if(response.data[i].name.common.toLowerCase() === name.toLowerCase() ){
-                    setExpandedCountry(response.data[i])
+                    setExpandedCountry(response.data[i]);
+                    getAPIWeatherData(response.data[i]);
                     break;
                 }
             }
@@ -63,12 +80,15 @@ useEffect( () => {
        );
 },[]);
 
+
 useEffect(() => {
-    if(filteredNames.length === 1){
-        getSingleCountryData();
-    }
-    else setCountryData(null);
-}, [filteredNames]);
+        if (expandedCountry){
+            getAPIWeatherData(expandedCountry);
+        }
+        else{
+            setCountryWeatherData(null);
+        }
+}, [expandedCountry]);
 
   return (
       <div>
@@ -77,6 +97,7 @@ useEffect(() => {
                  filteredNames={filteredNames} 
                  showCountry={showCountry} 
                  expandedCountry={expandedCountry}
+                 countryWeatherData={countryWeatherData}
       />
       </div>
     
@@ -93,7 +114,7 @@ const ShowCountries = ({newCountry, handleChange}) => {
     );
 };
 
-const Countries = ({countryNames, filteredNames, showCountry, expandedCountry}) =>{
+const Countries = ({countryNames, filteredNames, showCountry, expandedCountry, countryWeatherData }) =>{
     return(
         <div>
             <ul>
@@ -102,8 +123,8 @@ const Countries = ({countryNames, filteredNames, showCountry, expandedCountry}) 
                     <li key={name}>
                         {name}
                         <button onClick={() => showCountry(name)}>show/hide data</button>
-                        {expandedCountry && expandedCountry.name.common === name && (
-                           <ShowCountryData countryData={expandedCountry}/> )}
+                        { expandedCountry && expandedCountry.name.common === name && (
+                           <ShowCountryData countryData={expandedCountry} countryWeatherData={countryWeatherData}/> )}
                     </li>
                 ))}
             </ul>
@@ -111,10 +132,14 @@ const Countries = ({countryNames, filteredNames, showCountry, expandedCountry}) 
     );
 };
 
-const ShowCountryData = ({countryData}) => {
-    if(countryData === null){
+const ShowCountryData = ({countryData, countryWeatherData}) => {
+    if(countryData === null || countryWeatherData === null){
         return <div></div>;
     }
+
+    const iconCode = countryWeatherData.weather [0].icon; 
+    const weatherIconURL = `${iconURL}${iconCode}@${size}`;
+
    return(
        <div>
             <h3>{countryData.name.common}</h3>
@@ -134,6 +159,17 @@ const ShowCountryData = ({countryData}) => {
             </ul>
 
             <img className="flag" src={countryData.flags.svg} alt='flag here :D' />
+
+            <h3> <b> Weather in {countryData.capital[0]} </b> </h3>
+                { countryWeatherData.main && (
+                    <div>
+                        <div> <p> <b> {countryWeatherData.weather[0].description} </b> </p> </div>
+                        <p> <b> {countryWeatherData.main.temp}º </b> </p>
+                        <img src={weatherIconURL} alt="weather icon" />
+                        <p> <b> Wind speed {countryWeatherData.wind.speed}, feels like {countryWeatherData.main.feels_like}º </b> </p>
+                    </div>
+
+                )}
        </div>
    ); 
 };
